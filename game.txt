@@ -1,0 +1,422 @@
+#include <windows.h>
+#include <vector>
+#include <random>
+#include <cmath>
+#include <cstdint>
+#include <ctime>
+using namespace std;
+#define DIVISIONS 70
+#define DIVISIONS1 40
+HDC hdc;
+HDC hdc1;
+static int cxBlock, cyBlock;
+bool haveApple = false;
+int x, y;
+int xapple ;
+int yapple;
+PAINTSTRUCT  ps;
+int height = 400; int  weight =900;
+bool snakeEeat();
+void rs(HWND  hwnd);
+HBRUSH hBrushR = CreateSolidBrush(RGB(255, 0, 0));
+HBRUSH hBrushB = CreateSolidBrush(RGB(0, 0, 255));
+HBRUSH hBrushW = CreateSolidBrush(RGB(255, 255, 255));
+HBRUSH hBrushY = CreateSolidBrush(RGB(255, 255, 0));
+HBRUSH hBrushX = CreateSolidBrush(RGB(0, 178, 191));
+HBRUSH hBrushBL = CreateSolidBrush(RGB(0, 0, 0));
+HBRUSH hBrushG = CreateSolidBrush(RGB(0, 255, 0));
+HBRUSH hBrushO = CreateSolidBrush(RGB(236, 135, 14));
+HBRUSH hBrushG2 = CreateSolidBrush(RGB(0, 238, 0));
+
+static int xvuong1=100;
+static int xvuong2=200;
+static int xvuong3=300;
+static int xvuong4=400;
+static int yvuong1=450;
+static int yvuong2=450;
+static int yvuong3=450;
+static int yvuong4=450;
+
+
+
+static int status = 0;
+
+static bool da = false;
+struct Point
+{
+
+	int x;
+	int y;
+	Point(int x1, int y1) {
+		this->x = x1;
+		this->y = y1;
+	}
+};
+static vector <Point> snake;
+
+void reset();
+void kt(HWND  hwnd);
+void createApple(HWND  hwnd);
+LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
+	PSTR szCmdLine, int iCmdShow)
+{
+	static TCHAR szAppName[] = TEXT("Connect");
+	HWND         hwnd;
+	MSG          msg;
+	WNDCLASS     wndclass;
+
+	wndclass.style = CS_HREDRAW | CS_VREDRAW;
+	wndclass.lpfnWndProc = WndProc;
+	wndclass.cbClsExtra = 0;
+	wndclass.cbWndExtra = 0;
+	wndclass.hInstance = hInstance;
+	wndclass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+	wndclass.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wndclass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+	wndclass.lpszMenuName = NULL;
+	wndclass.lpszClassName = szAppName;
+
+	if (!RegisterClass(&wndclass))
+	{
+		MessageBox(NULL, TEXT("Program requires Windows NT!"),
+			szAppName, MB_ICONERROR);
+		return 0;
+	}
+
+	hwnd = CreateWindow(szAppName, TEXT("GAME RAN SAN MOI"),
+		WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		NULL, NULL, hInstance, NULL);
+
+	ShowWindow(hwnd, iCmdShow);
+	UpdateWindow(hwnd);
+
+	GetMessage(&msg, NULL, 0, 0);
+	
+	
+	createApple(hwnd);
+	while (true) {
+	
+		
+		kt(hwnd);
+		
+		if (snake.size() == 10) {
+			MessageBox(NULL, TEXT("VICTORY!"),TEXT("THONG BAO!"), NULL);
+			rs( hwnd);
+			
+		}
+
+
+		while(PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) {
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+
+		}
+		
+		if (status != 0) {
+			for (size_t i = snake.size() - 1; i > 0; i--)
+			{
+				snake[i] = snake[i - 1];
+			}
+		}
+			if (status == 2) {
+				snake[0].y -= 1;
+			}
+			if (status == 3) {
+				snake[0].y += 1;
+			}
+			if (status == 4) {
+				snake[0].x -= 1;
+			}
+		if (status == 1) {
+				snake[0].x += 1;
+			}
+		if (snakeEeat()) {
+			snake.push_back(snake[snake.size() - 1]);
+			createApple(hwnd);
+		}
+		
+	
+		hdc = GetDC(hwnd);
+		
+		for (int k = 0; k < snake.size(); k++)
+		{
+
+			if (k == 0) {
+				SelectObject(hdc, hBrushR);
+				Ellipse(hdc, snake[k].x * cxBlock, snake[k].y * cyBlock,
+					(snake[k].x + 1) * cxBlock, (snake[k].y + 1) * cyBlock);
+				SelectObject(hdc, hBrushBL);
+				Ellipse(hdc, snake[k].x * cxBlock+10, snake[k].y * cyBlock+10,
+					(snake[k].x + 1) * cxBlock-10, (snake[k].y + 1) * cyBlock-10);
+
+
+			}
+			else if (k== snake.size()-1) {
+				SelectObject(hdc, hBrushO);
+				Ellipse(hdc, snake[k].x * cxBlock, snake[k].y * cyBlock,
+					(snake[k].x + 1) * cxBlock, (snake[k].y + 1) * cyBlock);
+			}
+			else {
+				SelectObject(hdc, hBrushG2);
+				Ellipse(hdc, snake[k].x * cxBlock, snake[k].y * cyBlock,
+					(snake[k].x + 1) * cxBlock, (snake[k].y + 1) * cyBlock);
+			}
+		
+			
+		}
+		Sleep(200);
+		InvalidateRect(hwnd, NULL, TRUE);
+		ReleaseDC(hwnd, hdc);
+	
+	
+	}
+
+	while (GetMessage(&msg, NULL, 0, 0))
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+
+	DeleteObject(hBrushR);
+	DeleteObject(hBrushB);
+	DeleteObject(hBrushW);
+	DeleteObject(hBrushY);
+	DeleteObject(hBrushX);
+	DeleteObject(hBrushBL);
+	DeleteObject(hBrushG);
+	DeleteObject(hBrushO);
+	DeleteObject(hBrushG2);
+	return msg.wParam;
+}
+
+LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+
+
+
+	switch (message)
+	{
+	case WM_CHAR:
+		switch (wParam)
+		{
+			
+		
+		case 'w':
+			if (status != 3) {
+				for (size_t i = snake.size() - 1; i > 0; i--)
+				{
+					snake[i] = snake[i - 1];
+				}
+
+				snake[0].y -= 1;
+				status = 2;
+				InvalidateRect(hwnd, NULL, TRUE);
+			}
+			break;
+		case 's':
+			if (status != 2) {
+				for (size_t i = snake.size() - 1; i > 0; i--)
+				{
+					snake[i] = snake[i - 1];
+				}
+				snake[0].y += 1;
+				status = 3;
+				InvalidateRect(hwnd, NULL, TRUE);
+			}
+			break;
+		case 'a':
+			if (status != 1) {
+				for (size_t i = snake.size() - 1; i > 0; i--)
+				{
+					snake[i] = snake[i - 1];
+				}
+				snake[0].x -= 1;
+				status = 4;
+				InvalidateRect(hwnd, NULL, TRUE);
+			}
+			break;
+		case 'd':
+			if (status != 4) {
+				for (size_t i = snake.size() - 1; i > 0; i--)
+				{
+					snake[i] = snake[i - 1];
+				}
+				snake[0].x += 1;
+				status = 1;
+				InvalidateRect(hwnd, NULL, TRUE);
+			}
+			break;
+	
+		}
+
+		
+
+		return 0;
+	case WM_LBUTTONDOWN:
+	
+
+		x = LOWORD(lParam);
+		y = HIWORD(lParam);
+		if (x > xvuong1 && x < xvuong1+50 && y>yvuong1 && y < yvuong1+50) {
+			xvuong1 += 3;
+		}
+		if (x > xvuong2 && x < xvuong2 + 50 && y>yvuong2 && y < yvuong2 + 50) {
+			xvuong2 -= 3;
+		}
+		if (x > xvuong3 && x < xvuong3 + 50 && y>yvuong3 && y < yvuong3 + 50) {
+			yvuong3 += 3;
+		}
+		if (x > xvuong4 && x < xvuong4 + 50 && y>yvuong4 && y < yvuong4 + 50) {
+			yvuong4 -= 3;
+		}
+		
+		InvalidateRect(hwnd, NULL, TRUE);
+		return 0;
+	
+	
+	case WM_CREATE:
+		
+		reset();
+		InvalidateRect(hwnd, NULL, TRUE);
+
+		
+		return 0;
+	case WM_SIZE:
+		weight = LOWORD(lParam);
+		height = HIWORD(lParam);
+		cxBlock = LOWORD(lParam) / DIVISIONS;
+		cyBlock = HIWORD(lParam) / DIVISIONS1;
+		return 0;
+
+
+	
+	
+	
+  
+	case WM_PAINT:
+		hdc = BeginPaint(hwnd, &ps);
+		SelectObject(hdc, hBrushX);
+		Rectangle(hdc, 0, 0,
+			900, 400);
+		
+		Rectangle(hdc1, 0, 400,
+			700, 700);
+		
+		Rectangle(hdc1, 700, 400,
+			1136, 700);
+		TextOut(hdc, 800, 500, TEXT("it4_21_nguyenquanghuy_99863"), 28);
+
+		SelectObject(hdc1, hBrushR);
+		Rectangle(hdc1, xvuong1, yvuong1,
+			xvuong1 + 50, yvuong1 + 50);
+		SelectObject(hdc1, hBrushB);
+		Rectangle(hdc1, xvuong2, yvuong2,
+			xvuong2 + 50, yvuong2 + 50);
+		SelectObject(hdc1, hBrushG);
+		Rectangle(hdc1, xvuong3, yvuong3,
+			xvuong3 + 50, yvuong3 + 50);
+		SelectObject(hdc1, hBrushY);
+		Rectangle(hdc1, xvuong4, yvuong4,
+			xvuong4 + 50, yvuong4 + 50);
+		Rectangle(hdc1, xapple * cxBlock, yapple * cyBlock,
+			(xapple + 1) * cxBlock, (yapple + 1) * cyBlock);
+		
+
+		haveApple = true;
+	
+
+			for (int k = 0; k < snake.size(); k++)
+			{
+				if (k == 0) {
+					SelectObject(hdc, hBrushR);
+					Ellipse(hdc, snake[k].x * cxBlock, snake[k].y * cyBlock,
+						(snake[k].x + 1) * cxBlock, (snake[k].y + 1) * cyBlock);
+					SelectObject(hdc, hBrushY);
+					//POINT a[3] = { (snake[k].x + 1) * cxBlock, snake[k].y * cyBlock ,(snake[k].x + 1) * cxBlock,(snake[k].y + 1) * cyBlock,(snake[k].x + 1) / 2 * cxBlock,(snake[k].y+1) / 2 * cyBlock };
+					//Polygon(hdc,a, 3);
+				}
+				else if (k == snake.size() - 1) {
+					SelectObject(hdc, hBrushO);
+					Ellipse(hdc, snake[k].x * cxBlock, snake[k].y * cyBlock,
+						(snake[k].x + 1) * cxBlock, (snake[k].y + 1) * cyBlock);
+				}
+				else {
+					SelectObject(hdc, hBrushG2);
+					Ellipse(hdc, snake[k].x * cxBlock, snake[k].y * cyBlock,
+						(snake[k].x + 1) * cxBlock, (snake[k].y + 1) * cyBlock);
+				}
+				
+		}
+			
+	
+		
+			EndPaint(hwnd, &ps);
+		return 0;
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		return 0;
+	}
+	return DefWindowProc(hwnd, message, wParam, lParam);
+}
+
+
+void reset()
+{
+
+
+	snake.push_back(Point(63/ 2 +1, 29 / 2));
+	snake.push_back(Point(63 / 2, 29 / 2));
+	snake.push_back(Point(63 / 2 - 1,  29/ 2));
+
+	
+}
+void kt(HWND  hwnd) {
+	for (int i = 1; i < snake.size(); i++) {
+		if (snake[0].x== snake[i].x && snake[0].y == snake[i].y) {
+			MessageBox(NULL, TEXT("YOU LOST"), TEXT(" THONG BAO"), NULL);
+			rs(hwnd);
+		}
+
+	}
+	if (snake[0].x == 0 || snake[0].y == 0) {
+		MessageBox(NULL, TEXT("YOU LOST"), TEXT(" THONG BAO"), NULL);
+		
+		rs(hwnd);
+		
+	}
+	if (snake[0].x > 54 || snake[0].y >29)
+	{
+		MessageBox(NULL, TEXT("YOU LOST"), TEXT(" THONG BAO"), NULL);
+		rs(hwnd);
+	}
+	
+}
+void createApple(HWND  hwnd) {
+	xapple= rand() % (50 - 1) + 1;
+	yapple= rand() % (25 - 1) + 1;
+
+	hdc1 = GetDC(hwnd);
+	SelectObject(hdc1, hBrushY);
+	Rectangle(hdc1, xapple * cxBlock, yapple * cyBlock,
+		(xapple + 1) * cxBlock, (yapple + 1) * cyBlock);
+	ReleaseDC(hwnd, hdc1);
+	haveApple = true;
+
+}
+bool snakeEeat() {
+	if ((snake[0].x == xapple && snake[0].y== yapple ) || (snake[0].x == xapple && snake[0].y == yapple + 1)|| (snake[0].x+1 == xapple && snake[0].y == yapple )|| (snake[0].x+1 == xapple && snake[0].y == yapple + 1))
+		return true;
+	return false;
+}
+void rs(HWND  hwnd) {
+	snake.clear();
+	reset();
+	status = 0;
+	createApple(hwnd);
+
+
+}
